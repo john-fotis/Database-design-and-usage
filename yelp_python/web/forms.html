@@ -1,0 +1,62 @@
+<html>
+    <head>
+        <title>Simple DB App</title>
+        <script>
+            function submitForm(form, method) {
+                var vals = [];
+                
+                for (var n=0; n < form.elements.length; n++) {
+                    if(form.elements[n].className === 'toSubmit') {
+                        vals.push(form.elements[n].name + "=" + form.elements[n].value);
+                    }
+                }
+                
+                window.parent.document.getElementById('resultsFrame').contentWindow.location = method + "?" + vals.join("&");
+            }
+        </script>
+    </head>
+    
+    <body>
+        <table width="100%" height="100%"  border='2'>
+            <tr>
+                <td>
+                    <h2>Classify review</h2>
+                    <form>
+                        Review id: <input type="text" class="toSubmit" name="review_id" /><br />
+                        <input type="button" name="button" value="Search" onClick="submitForm(this.form, 'classify_review')" />
+                    </form>
+                </td>
+
+                
+            </tr>
+            <tr>
+			    <td>
+                    <h2>Update zip code</h2>
+                    <form>
+			Business Id: <input type="text" class="toSubmit" name="bid" /><br />
+                        Zip code: <input type="text" class="toSubmit" name="zcode" /><br />
+                        <input type="button" name="button" value="Search" onClick="submitForm(this.form, 'updatezipcode')" />
+                    </form>
+                </td>
+                <td>
+                    <h2>Top N businesses per Category</h2>
+                    <form>
+                        Category Id: <input type="text" class="toSubmit" name="class1" /><br />
+                        N: <input type="text" class="toSubmit" name="n" /><br />
+                        <input type="button" name="button" value="Search" onClick="submitForm(this.form, 'selectTopNbusinesses')" />
+                    </form>
+                </td>
+            </tr>
+			<tr>
+				<td>
+                    <h2>Trace User Influence</h2>
+                    <form>
+                        User Id: <input type="text" class="toSubmit" name="userId" /><br />
+						Depth : <input type="text" class="toSubmit" name="depth" /><br />
+                        <input type="button" name="button" value="Search" onClick="submitForm(this.form, 'traceUserInfuence')" />
+                    </form>
+                </td>
+			</tr>
+        </table>
+    </body>
+</html>
