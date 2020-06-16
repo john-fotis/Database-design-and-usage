@@ -20,10 +20,10 @@ def classify_review(reviewid):
     # Create a cursor on the connection
     cur=con.cursor()
     # Find requested review
-    find_review = ("""SELECT text FROM reviews WHERE review_id = '%s';""" %(reviewid))
+    find_review = ("""SELECT text FROM reviews WHERE review_id = '%s';""" % (reviewid))
     # Find reviewed business ID
-    find_business = ("""SELECT b.business_id FROM business b, reviews r \
-        WHERE b.business_id = r.business_id AND r.review_id = '%s';""" %(reviewid))
+    find_business = ("""SELECT b.business_id FROM business b, reviews r
+        WHERE b.business_id = r.business_id AND r.review_id = '%s';""" % (reviewid))
     positives = 0
     negatives = 0
     toReturn = []
@@ -63,7 +63,7 @@ def classify_review(reviewid):
             print("Error when trying to extract n-grams. No valid number given.")
         return(toReturn)
 
-    print("%s-gram splitting:" %(mynum))
+    print("%s-gram splitting:" % (mynum))
     splitted_text = extract_ngrams(tup,mynum)
     print (splitted_text)
     print("")
@@ -72,23 +72,23 @@ def classify_review(reviewid):
     for gram in splitted_text:
 
         # Positive terms
-        sql_positive = ("""SELECT 1 FROM posterms WHERE '%s' IN (word);""" %(gram))
+        sql_positive = ("""SELECT 1 FROM posterms WHERE '%s' IN (word);""" % (gram))
         cur.execute(sql_positive)
         pos = cur.fetchone()
         if bool(pos) == True:
             positives = positives + mynum
-            print("(%s) was found positive" %(gram))
+            print("(%s) was found positive" % (gram))
 
         # Negative terms
-        sql_negative = ("""SELECT 1 FROM negterms WHERE '%s' IN (word);""" %(gram))
+        sql_negative = ("""SELECT 1 FROM negterms WHERE '%s' IN (word);""" % (gram))
         cur.execute(sql_negative)
         neg = cur.fetchone()
         if bool(neg) == True:
             negatives = negatives + mynum
-            print("(%s) was found negative" %(gram))
+            print("(%s) was found negative" % (gram))
     print("")
-    print("Positives terms are: %s" %(positives))
-    print("Negatives terms are: %s" %(negatives))
+    print("Positives terms are: %s" % (positives))
+    print("Negatives terms are: %s" % (negatives))
 
     toReturn.append(("Business ID","Review",))
     toReturn.append((business_id_str,tup,))
@@ -120,7 +120,7 @@ def updatezipcode(business_id, zipcode):
     # Create the query
     q = ("""SELECT * \
         FROM business b \
-        WHERE b.business_id = '%s';""" %(business_id))
+        WHERE b.business_id = '%s';""" % (business_id))
 
     # flag message, preset = ok
     ack = ('OK')
@@ -136,8 +136,8 @@ def updatezipcode(business_id, zipcode):
     if not(results):
         ack = ('Error')
     else:
-        updateQuery = ("""UPDATE business SET zip_code = '%s' \
-        WHERE business_id = '%s';""" %(zipcode, business_id))
+        updateQuery = ("""UPDATE business SET zip_code = '%s'
+        WHERE business_id = '%s';""" % (zipcode, business_id))
         try:
             cur.execute(updateQuery)
         except:
@@ -161,14 +161,14 @@ def selectTopNbusinesses(category_id, n):
     toReturn = [("Business ID", "Positive Reviews")]
 
     # Create query
-    q = ("""SELECT bc.business_id, COUNT(r.review_id) AS 'Positive Reviews' \
-        FROM business_category bc , reviews r, reviews_pos_neg rpos \
-        WHERE bc.category_id = '%s' \
-        AND bc.business_id = r.business_id \
-        AND r.review_id = rpos.review_id \
-        AND rpos.positive = true \
-        GROUP BY bc.business_id \
-        ORDER BY count(r.review_id) DESC LIMIT %s;""" %(category_id, n))
+    q = ("""SELECT bc.business_id, COUNT(r.review_id) AS 'Positive Reviews'
+        FROM business_category bc , reviews r, reviews_pos_neg rpos
+        WHERE bc.category_id = '%s'
+        AND bc.business_id = r.business_id
+        AND r.review_id = rpos.review_id
+        AND rpos.positive = true
+        GROUP BY bc.business_id
+        ORDER BY count(r.review_id) DESC LIMIT %s;""" % (category_id, n))
 
     try:
         # Execute query
@@ -185,74 +185,84 @@ def selectTopNbusinesses(category_id, n):
     return toReturn
 
 def traceUserInfuence(userId,depth):
-    # Check input
-    if (int(depth) > 3 or int(depth) <= 0):
+
+    if int(depth) < 1 or int(depth) > 3:
         return [("Invalid depth given",)]
 
-    # Counter of influenced friends
-    counter = 0
+    # -- Main function --
+    toReturn = [("User ID",)]
     # Create a new connection
     con=connection()
     # Create a cursor on the connection
     cur=con.cursor()
 
-    toReturn = [("User ID influenced the following:",)]
-    # Find all friends of user
-    sql_friends = ("""SELECT f.friend_id FROM friends f,user u \
-        WHERE u.user_id = f.user_id AND u.user_id = '%s';""" %(userId))
-    cur.execute(sql_friends)
-    friends = cur.fetchall()
-    if not friends:
-        return ("User has no friends",)
+    # -- Recursive function for multiple depths --
+    def recursive(currentId, currentDepth):
+        # User friends
+        sql_user_friends = """SELECT f.friend_id FROM user u, friends f
+            WHERE u.user_id = f.user_id AND u.user_id = '%s';""" % (currentId)
+        cur.execute(sql_user_friends)
+        friends = cur.fetchall()
 
-    # Find all businesses that user reviewed
-    sql_reviewed_businesses = ("""SELECT b.business_id \
-        FROM business b, user u, reviews r \
-        WHERE b.business_id = r.business_id \
-        AND u.user_id = r.user_id \
-        AND u.user_id = '%s';""" %(userId))
-    cur.execute(sql_reviewed_businesses)
-    user_reviewed_businesses = cur.fetchall()
-    print(" User reviewed businesses: ", user_reviewed_businesses)
-    print("")
+        if not friends:
+            return [("Requested user has no friends",)]
 
-    user_bus_str = ""
-    friend_str = ""
+        # User reviewed businesses
+        sql_user_reviewed_businesses = """SELECT b.business_id
+            FROM user u, reviews r, business b
+            WHERE u.user_id = r.user_id
+            AND r.business_id = b.business_id
+            AND u.user_id = '%s';""" % (currentId)
 
-    for friend in friends:
-        # Find all businesses that every friend of user has reviewed
-        sql_friend_businesses = ("""SELECT b.business_id \
-            FROM business b, user u, reviews r \
-            WHERE b.business_id = r.business_id \
-            AND u.user_id = r.user_id \
-            AND u.user_id = '%s';""" %(friend))
-        # Find oldest date of user-reviews in common business with friend
-        sql_user_common_review = ("""SELECT DISTINCT r.date \
-            FROM reviews r, business b \
-            WHERE r.user_id = '%s' \
-            AND b.business_id = '%s' \
-            ORDER BY r.date LIMIT 1;""" %(userId, user_bus_str))
-        # Find oldest date of friend-reviews in common business with user
-        sql_friend_common_review = ("""SELECT DISTINCT r.date \
-            FROM reviews r, business b \
-            WHERE r.user_id = '%s' \
-            AND b.business_id = '%s' \
-            ORDER BY r.date LIMIT 1;""" %(friend_str, user_bus_str))
-        cur.execute(sql_friend_businesses)
-        friend_reviewed_businesses = cur.fetchall()
+        cur.execute(sql_user_reviewed_businesses)
+        userReviewedBussinesses = cur.fetchall()
 
-        for user_bus in user_reviewed_businesses:
+        user_bus_str = ''
+        friend_str = ''
+
+        for friend in friends:
             friend_str = ''.join(friend)
-            user_bus_str = ''.join(user_bus)
-            for friend_bus in friend_reviewed_businesses:
-                if user_bus == friend_bus:
-                    cur.execute(sql_user_common_review)
-                    user_date = cur.fetchone()
-                    cur.execute(sql_friend_common_review)
-                    friend_date = cur.fetchone()
+            friend_str = friend_str.replace('\'', '')
+            # User's friends reviewed businesses
+            sql_friend_reviewed_businesses = """SELECT b.business_id
+                FROM user u, reviews r, business b
+                WHERE u.user_id = r.user_id
+                AND r.business_id = b.business_id
+                AND u.user_id = '%s';""" % (friend_str)
+            sql_user_common_review = """SELECT DISTINCT r.date
+                FROM reviews r, business b
+                WHERE r.user_id = '%s'
+                AND b.business_id = '%s'
+                ORDER BY r.date LIMIT 1;""" % (currentId, user_bus_str)
+            sql_friend_common_review = """SELECT DISTINCT r.date
+                FROM reviews r, business b
+                WHERE r.user_id = '%s'
+                AND b.business_id = '%s'
+                ORDER BY r.date LIMIT 1;""" % (friend_str, user_bus_str)
 
-                    if user_date < friend_date:
-                        # Avoid duplicates
-                        if friend not in toReturn:
-                            toReturn.append(friend)
+            cur.execute(sql_friend_reviewed_businesses)
+            friendReviewedBusinesses = cur.fetchall()
+
+            for user_bus in userReviewedBussinesses:
+                for friend_bus in friendReviewedBusinesses:
+                    user_bus_str = ''.join(user_bus)
+                    if user_bus == friend_bus:
+                        # Find oldest date of user-reviews in common business with friend
+                        cur.execute(sql_user_common_review)
+                        user_date = cur.fetchone()
+                        # Find oldest date of friend-reviews in common business with user
+                        cur.execute(sql_friend_common_review)
+                        friend_date = cur.fetchone()
+
+                        if user_date < friend_date:
+                            # Avoid duplicates
+                            if friend not in toReturn:
+                                toReturn.append(friend)
+                                # Do we need to keep searching?
+                                if currentDepth < int(depth):
+                                    recursive(friend_str, currentDepth + 1)
+
+    recursive(userId, 1)
+
+    con.close()
     return toReturn
