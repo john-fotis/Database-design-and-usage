@@ -1,8 +1,8 @@
 # MySQL Settings
-mysql_host =  '127.0.0.1' 
-mysql_port = 3306  # must be integer (this is wrong:'3306')
-mysql_user = 'root'   #must replace with your own settings
-mysql_passwd = '2739' #must replace with your own settings 
+mysql_host =  '127.0.0.1'
+mysql_port = 3306       # must be integer (this is wrong:'3306')
+mysql_user = 'root'     #must replace with your own settings
+mysql_passwd = 'root'   #must replace with your own settings 
 mysql_schema = 'yelp'
 
 # Webserver Settings

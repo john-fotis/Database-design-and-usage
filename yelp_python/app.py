@@ -185,6 +185,7 @@ def selectTopNbusinesses(category_id, n):
     return toReturn
 
 def traceUserInfuence(userId,depth):
+    print("Trace user influence:")
 
     if int(depth) < 1 or int(depth) > 3:
         return [("Invalid depth given",)]
